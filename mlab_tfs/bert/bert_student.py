@@ -41,12 +41,18 @@ class LayerNorm(nn.Module):
         self.normalized_shape = normalized_shape
         self.weight = None
         self.bias = None
-        raise NotImplementedError
+        if isinstance(normalized_shape, int):
+            self.normalized_shape = [normalized_shape]
+
 
     def forward(self, input: TensorType[...]):
         """Apply Layer Normalization over a mini-batch of inputs."""
         eps = 1e-05
-        raise NotImplementedError
+        num_dim_normalized = len(self.normalized_shape)
+        dim_range = range(-1, -num_dim_normalized, -1)
+        means = input.mean(dim=dim_range) #shape *
+        vars = input.var(dim=dim_range)
+        return (input - means) / (vars + eps) ** 0.5
 
 
 class Embedding(nn.Module):
