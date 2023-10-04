@@ -40,7 +40,8 @@ class LayerNorm(nn.Module):
     def __init__(self, normalized_shape: typing.Union[int, tuple]):
         super().__init__()
         self.normalized_shape = normalized_shape
-        self.weight = self.bias = t.empty(normalized_shape)
+        self.weight = t.ones(normalized_shape)
+        self.bias = t.zeros(normalized_shape)
         if isinstance(normalized_shape, int):
             self.normalized_shape = [normalized_shape]
 
@@ -49,9 +50,14 @@ class LayerNorm(nn.Module):
         """Apply Layer Normalization over a mini-batch of inputs."""
         eps = 1e-05
         num_dim_normalized = len(self.normalized_shape)
-        dims = tuple(range(-1, -num_dim_normalized, -1))
+        dims = tuple(range(-1, -num_dim_normalized - 1, -1))
+
         means = input.mean(dim=dims) #shape *
         vars = input.var(dim=dims)
+        # make correct means/vars shape for broadcasting
+        means_shape = means.shape + t.Size([1]) * num_dim_normalized # may not work
+        means = means.view(means_shape)
+        vars = vars.view(means_shape)
         normalized = (input - means) / (vars + eps) ** 0.5
         return self.weight * normalized + self.bias
 
