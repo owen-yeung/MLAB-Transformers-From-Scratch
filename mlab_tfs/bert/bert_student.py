@@ -11,6 +11,7 @@ import torch as t
 from torch import nn
 from einops import rearrange, repeat
 from torchtyping import TensorType
+from fancy_einsum import einsum
 
 
 class LayerNorm(nn.Module):
@@ -39,8 +40,7 @@ class LayerNorm(nn.Module):
     def __init__(self, normalized_shape: typing.Union[int, tuple]):
         super().__init__()
         self.normalized_shape = normalized_shape
-        self.weight = None
-        self.bias = None
+        self.weight = self.bias = t.empty(normalized_shape)
         if isinstance(normalized_shape, int):
             self.normalized_shape = [normalized_shape]
 
@@ -49,10 +49,11 @@ class LayerNorm(nn.Module):
         """Apply Layer Normalization over a mini-batch of inputs."""
         eps = 1e-05
         num_dim_normalized = len(self.normalized_shape)
-        dim_range = range(-1, -num_dim_normalized, -1)
-        means = input.mean(dim=dim_range) #shape *
-        vars = input.var(dim=dim_range)
-        return (input - means) / (vars + eps) ** 0.5
+        dims = tuple(range(-1, -num_dim_normalized, -1))
+        means = input.mean(dim=dims) #shape *
+        vars = input.var(dim=dims)
+        normalized = (input - means) / (vars + eps) ** 0.5
+        return self.weight * normalized + self.bias
 
 
 class Embedding(nn.Module):

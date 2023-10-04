@@ -8,7 +8,7 @@ import importlib
 from torchtyping import patch_typeguard, TensorType
 import math
 
-from PIL import Image
+from PIL import Image # was PIL
 import requests
 from io import BytesIO
 import torchvision
