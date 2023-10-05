@@ -40,10 +40,10 @@ class LayerNorm(nn.Module):
     def __init__(self, normalized_shape: typing.Union[int, tuple]):
         super().__init__()
         self.normalized_shape = normalized_shape
-        self.weight = t.ones(normalized_shape)
-        self.bias = t.zeros(normalized_shape)
         if isinstance(normalized_shape, int):
             self.normalized_shape = [normalized_shape]
+        self.weight = t.ones(normalized_shape)
+        self.bias = t.zeros(normalized_shape)
 
 
     def forward(self, input: TensorType[...]):
