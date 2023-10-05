@@ -192,7 +192,7 @@ class MultiHeadedSelfAttention(nn.Module):
         self.project_output = nn.Linear(hidden_size, hidden_size, bias=True)
     def split_heads(self, x):
         """Split x into multiple heads."""
-        return rearrange(x, 'b s (h d) -> h b s d', h=self.num_heads)
+        return rearrange(x, 'b s (h d) -> b h s d', h=self.num_heads)
     def forward(self, input: TensorType['batch', 'seq_length', 'hidden_size'],
                 attn_mask: typing.Optional[TensorType['batch', 'seq_length']] = None
                 ) -> TensorType['batch', 'seq_length', 'hidden_size']:
@@ -203,13 +203,13 @@ class MultiHeadedSelfAttention(nn.Module):
         keys = self.split_heads(self.project_key(input))
         values = self.split_heads(self.project_value(input))
         print(queries.shape)
-        attn_scores = einsum('h b q d, h b k d -> h b q k', queries, keys)
+        attn_scores = einsum('b h q d, b h k d -> b h k q', queries, keys)
         print(attn_scores.shape)
         # TODO: mask attn_scores not implemented
-        values_post_attn = einsum('h b q k, h b k d -> h b q d', attn_scores, values)
+        values_post_attn = einsum('b h k q, b h k d -> b h q d', attn_scores, values)
         print(values_post_attn.shape)
         # unsplit heads
-        values_post_attn = rearrange(values_post_attn, 'h b s d -> b s (h d)')
+        values_post_attn = rearrange(values_post_attn, 'b h s d -> b s (h d)')
         print(values_post_attn.shape)
         return self.project_output(values_post_attn)
 
