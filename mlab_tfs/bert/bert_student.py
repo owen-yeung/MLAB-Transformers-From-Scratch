@@ -186,10 +186,10 @@ class MultiHeadedSelfAttention(nn.Module):
         super().__init__()
         self.num_heads = num_heads
         # d_head = int(hidden_size / num_heads)
-        self.project_query = nn.Linear(hidden_size, hidden_size)
-        self.project_key = nn.Linear(hidden_size, hidden_size)
-        self.project_value = nn.Linear(hidden_size, hidden_size)
-        self.project_output = nn.Linear(hidden_size, hidden_size)
+        self.project_query = nn.Linear(hidden_size, hidden_size, bias=True)
+        self.project_key = nn.Linear(hidden_size, hidden_size, bias=True)
+        self.project_value = nn.Linear(hidden_size, hidden_size, bias=True)
+        self.project_output = nn.Linear(hidden_size, hidden_size, bias=True)
     def split_heads(self, x):
         """Split x into multiple heads."""
         return rearrange(x, 'b s (h d) -> h b s d', h=self.num_heads)
