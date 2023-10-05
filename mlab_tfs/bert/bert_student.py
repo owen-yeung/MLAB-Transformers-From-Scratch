@@ -53,12 +53,15 @@ class LayerNorm(nn.Module):
         dims = tuple(range(-1, -num_dim_normalized - 1, -1))
 
         means = input.mean(dim=dims) #shape *
-        vars = input.var(dim=dims)
+        vars = input.var(dim=dims, correction=0)
+        # means = input.mean(-1)
+        # vars = input.var(-1)
         # make correct means/vars shape for broadcasting
         means_shape = means.shape + t.Size([1]) * num_dim_normalized # may not work
         means = means.view(means_shape)
         vars = vars.view(means_shape)
         normalized = (input - means) / (vars + eps) ** 0.5
+        # return normalized
         return self.weight * normalized + self.bias
 
 

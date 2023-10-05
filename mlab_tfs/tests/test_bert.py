@@ -83,6 +83,14 @@ class TestBertLayerNorm(MLTest):
         ln1(input)
         patched_layer_norm.assert_not_called()
 
+    # def test_layer_norm_2d_mean_only(self):
+    #     """Test a 2D input tensor with ones."""
+    #     ln1 = bert_student.LayerNorm(10)
+    #     ln2 = nn.LayerNorm(10)
+    #     t.random.manual_seed(42)
+    #     input = t.ones(20, 10)
+    #     input[0][0] = 10
+    #     self.assert_tensors_close(ln1(input), ln2(input))
     def test_layer_norm_2d(self):
         """Test a 2D input tensor."""
         ln1 = bert_student.LayerNorm(10)
