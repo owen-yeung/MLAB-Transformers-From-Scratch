@@ -42,6 +42,7 @@ class LayerNorm(nn.Module):
         self.normalized_shape = normalized_shape
         if isinstance(normalized_shape, int):
             self.normalized_shape = [normalized_shape]
+            #TODO: may have to make w and b learnable parameters
         self.weight = t.ones(normalized_shape)
         self.bias = t.zeros(normalized_shape)
 
@@ -54,10 +55,9 @@ class LayerNorm(nn.Module):
 
         means = input.mean(dim=dims) #shape *
         vars = input.var(dim=dims, correction=0)
-        # means = input.mean(-1)
-        # vars = input.var(-1)
+
         # make correct means/vars shape for broadcasting
-        means_shape = means.shape + t.Size([1]) * num_dim_normalized # may not work
+        means_shape = means.shape + t.Size([1]) * num_dim_normalized
         means = means.view(means_shape)
         vars = vars.view(means_shape)
         normalized = (input - means) / (vars + eps) ** 0.5
@@ -87,12 +87,12 @@ class Embedding(nn.Module):
 
     def __init__(self, vocab_size, embed_size):
         super().__init__()
-        self.weight = None
-        raise NotImplementedError
+        self.weight = t.randn([vocab_size, embed_size])
+
 
     def forward(self, input):
         """Look up the input list of indices in the embedding matrix."""
-        raise NotImplementedError
+        return self.weight[input, :]
 
 
 class BertEmbedding(nn.Module):
@@ -133,16 +133,18 @@ class BertEmbedding(nn.Module):
     def __init__(self, vocab_size: int, hidden_size: int, max_position_embeddings: int,
                  type_vocab_size: int, dropout: float):
         super().__init__()
-        self.token_embedding = None
-        self.position_embedding = None
-        self.token_type_embedding = None
-        self.layer_norm = None
-        self.dropout = None
-        raise NotImplementedError
+        self.token_embedding = Embedding(vocab_size, hidden_size)
+        self.position_embedding = Embedding(max_position_embeddings, hidden_size)
+        self.token_type_embedding = Embedding(type_vocab_size, hidden_size)
+        self.layer_norm = LayerNorm(hidden_size)  # guess
+        self.dropout = t.nn.Dropout(p=dropout)
 
     def forward(self, input_ids, token_type_ids):
         """Add embeddings and apply layer norm and dropout."""
-        raise NotImplementedError
+        residual = self.token_embedding(input_ids)
+        residual += self.position_embedding(t.arange(len(input_ids)))
+        residual += self.token_type_embedding(token_type_ids)
+        return self.dropout(self.layer_norm(residual))
 
 
 class MultiHeadedSelfAttention(nn.Module):
