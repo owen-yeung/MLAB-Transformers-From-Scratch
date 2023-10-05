@@ -199,6 +199,7 @@ class TestBertAttention(MLTest):
         bert_reference.SelfAttentionLayer (num_heads = 1).
         """
         config = BERT_CONFIG_NO_DROPOUT
+        config["num_heads"] = 1
 
         t.random.manual_seed(0)
         reference = bert_reference.SelfAttentionLayer(config)

@@ -185,17 +185,33 @@ class MultiHeadedSelfAttention(nn.Module):
     def __init__(self, num_heads: int, hidden_size: int):
         super().__init__()
         self.num_heads = num_heads
-        d_head = int(hidden_size / num_heads)  # TODO: check if int
-        self.project_query = nn.Linear(hidden_size, d_head)
-        self.project_key = nn.Linear(hidden_size, d_head)
-        self.project_value = nn.Linear(hidden_size, d_head)
-        self.project_output = nn.Linear(d_head, hidden_size)
-
+        # d_head = int(hidden_size / num_heads)
+        self.project_query = nn.Linear(hidden_size, hidden_size)
+        self.project_key = nn.Linear(hidden_size, hidden_size)
+        self.project_value = nn.Linear(hidden_size, hidden_size)
+        self.project_output = nn.Linear(hidden_size, hidden_size)
+    def split_heads(self, x):
+        """Split x into multiple heads."""
+        return rearrange(x, 'b s (h d) -> h b s d', h=self.num_heads)
     def forward(self, input: TensorType['batch', 'seq_length', 'hidden_size'],
                 attn_mask: typing.Optional[TensorType['batch', 'seq_length']] = None
                 ) -> TensorType['batch', 'seq_length', 'hidden_size']:
-        """Apply multi-headed scaled dot product self attention with an optional attention mask."""
-        raise NotImplementedError
+        """Apply multi-headed scaled dot product self attention with an optional attention mask.
+        Mask not implemented"""
+        print(input.shape)
+        queries = self.split_heads(self.project_query(input))
+        keys = self.split_heads(self.project_key(input))
+        values = self.split_heads(self.project_value(input))
+        print(queries.shape)
+        attn_scores = einsum('h b q d, h b k d -> h b q k', queries, keys)
+        print(attn_scores.shape)
+        # TODO: mask attn_scores not implemented
+        values_post_attn = einsum('h b q k, h b k d -> h b q d', attn_scores, values)
+        print(values_post_attn.shape)
+        # unsplit heads
+        values_post_attn = rearrange(values_post_attn, 'h b s d -> b s (h d)')
+        print(values_post_attn.shape)
+        return self.project_output(values_post_attn)
 
 
 class GELU(nn.Module):
