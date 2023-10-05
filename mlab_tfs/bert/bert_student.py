@@ -140,9 +140,13 @@ class BertEmbedding(nn.Module):
         self.dropout = t.nn.Dropout(p=dropout)
 
     def forward(self, input_ids, token_type_ids):
-        """Add embeddings and apply layer norm and dropout."""
-        residual = self.token_embedding(input_ids)
-        residual += self.position_embedding(t.arange(len(input_ids)))
+        """Add embeddings and apply layer norm and dropout.
+            Implementation assumes input_ids is 2d, not sure if this is a problem"""
+        input_shape = input_ids.size()
+        max_pos = input_shape[-1]
+        input_pos = t.arange(max_pos).expand(input_shape[-2], -1)
+        residual = self.token_embedding(input_ids)  # has shape [input_shape, hidden_dim]
+        residual += self.position_embedding(input_pos)
         residual += self.token_type_embedding(token_type_ids)
         return self.dropout(self.layer_norm(residual))
 
