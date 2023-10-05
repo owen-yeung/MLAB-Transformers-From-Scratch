@@ -206,7 +206,7 @@ class MultiHeadedSelfAttention(nn.Module):
         head_size = self.hidden_size // self.num_heads
         attn_scores = einsum('b h q d, b h k d -> b h k q', queries, keys) / np.sqrt(head_size)
         if attn_mask is not None:
-            attn_scores -= (1 - attention_mask) * 10000
+            attn_scores -= (1 - attn_mask) * 10000
         # if attn_mask is not None:
         #     attn_mask = rearrange(attn_mask, 'b s -> b () s ()')
         #     attn_scores[attn_mask, :] = -np.inf
