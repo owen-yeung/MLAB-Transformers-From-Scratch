@@ -185,11 +185,11 @@ class MultiHeadedSelfAttention(nn.Module):
     def __init__(self, num_heads: int, hidden_size: int):
         super().__init__()
         self.num_heads = num_heads
-        self.project_query = None
-        self.project_key = None
-        self.project_value = None
-        self.project_output = None
-        raise NotImplementedError
+        d_head = int(hidden_size / num_heads)  # TODO: check if int
+        self.project_query = nn.Linear(hidden_size, d_head)
+        self.project_key = nn.Linear(hidden_size, d_head)
+        self.project_value = nn.Linear(hidden_size, d_head)
+        self.project_output = nn.Linear(d_head, hidden_size)
 
     def forward(self, input: TensorType['batch', 'seq_length', 'hidden_size'],
                 attn_mask: typing.Optional[TensorType['batch', 'seq_length']] = None
@@ -215,7 +215,7 @@ class GELU(nn.Module):
 
     def forward(self, input):
         """Apply the GELU function."""
-        raise NotImplementedError
+        return input * 0.5 * (1.0 + t.erf(input / 2 ** 0.5))
 
 
 class BertMLP(nn.Module):
