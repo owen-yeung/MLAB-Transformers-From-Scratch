@@ -42,9 +42,8 @@ class LayerNorm(nn.Module):
         self.normalized_shape = normalized_shape
         if isinstance(normalized_shape, int):
             self.normalized_shape = [normalized_shape]
-            #TODO: may have to make w and b learnable parameters
-        self.weight = t.ones(normalized_shape)
-        self.bias = t.zeros(normalized_shape)
+        self.weight = nn.Parameter(t.ones(normalized_shape))
+        self.bias = nn.Parameter(t.zeros(normalized_shape))
 
 
     def forward(self, input: TensorType[...]):
@@ -87,7 +86,7 @@ class Embedding(nn.Module):
 
     def __init__(self, vocab_size, embed_size):
         super().__init__()
-        self.weight = t.randn([vocab_size, embed_size])
+        self.weight = nn.Parameter(t.randn([vocab_size, embed_size]))
 
 
     def forward(self, input):
@@ -368,7 +367,7 @@ class Bert(nn.Module):
                  num_heads: int, num_layers: int):
         super().__init__()
         self.embed = BertEmbedding(vocab_size, hidden_size, max_position_embeddings, type_vocab_size, dropout)
-        self.blocks = nn.Sequential(num_layers * [BertBlock(hidden_size, intermediate_size, num_heads, dropout)])
+        self.blocks = nn.Sequential(*[BertBlock(hidden_size, intermediate_size, num_heads, dropout) for _ in range(num_layers)])
         self.lin = nn.Linear(hidden_size, hidden_size, bias=True)
         self.gelu = GELU()
         self.layer_norm = LayerNorm(hidden_size)
@@ -377,7 +376,11 @@ class Bert(nn.Module):
     def forward(self, input_ids):
         """Apply embedding, blocks, and token output head."""
         token_type_ids = t.zeros_like(input_ids, dtype=t.int64)
-        raise NotImplementedError
+        residual = self.embed(input_ids, token_type_ids)
+        residual = self.blocks(residual)
+        residual = self.layer_norm(self.gelu(self.lin(residual)))
+        return self.unembed(residual)
+
 
 
 class BertWithClassify(nn.Module):
@@ -414,17 +417,23 @@ class BertWithClassify(nn.Module):
     def __init__(self, vocab_size, hidden_size, max_position_embeddings, type_vocab_size,
                  dropout, intermediate_size, num_heads, num_layers, num_classes):
         super().__init__()
-        self.embed = None
-        self.blocks = None
-        self.lin = None
-        self.gelu = None
-        self.layer_norm = None
-        self.unembed = None
-        self.classification_dropout = None
-        self.classification_head = None
-        raise NotImplementedError
+        self.embed = BertEmbedding(vocab_size, hidden_size, max_position_embeddings, type_vocab_size, dropout)
+        self.blocks = nn.Sequential(*[BertBlock(hidden_size, intermediate_size, num_heads, dropout) for _ in range(num_layers)])
+        self.lin = nn.Linear(hidden_size, hidden_size, bias=True)
+        self.gelu = GELU()
+        self.layer_norm = LayerNorm(hidden_size)
+        self.unembed = nn.Linear(hidden_size, vocab_size, bias=True)
+        self.classification_dropout = nn.Dropout(p=dropout)
+        self.classification_head = nn.Linear(hidden_size, num_classes, bias=True)
+
 
     def forward(self, input_ids):
         """Returns a tuple of logits, classifications."""
         token_type_ids = t.zeros_like(input_ids, dtype=t.int64)
-        raise NotImplementedError
+        residual = self.embed(input_ids, token_type_ids)
+        residual = self.blocks(residual)
+        logits = self.unembed(self.layer_norm(self.gelu(self.lin(residual))))
+        print(residual.shape)
+        print(residual[:,0].shape)
+        classifications = self.classification_head(self.classification_dropout(residual[:, 0]))
+        return logits, classifications
