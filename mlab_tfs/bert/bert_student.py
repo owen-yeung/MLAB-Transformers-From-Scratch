@@ -310,16 +310,20 @@ class BertBlock(nn.Module):
 
     def __init__(self, hidden_size: int, intermediate_size: int, num_heads: int, dropout: float):
         super().__init__()
-        self.attention = None
-        self.layernorm1 = None
-        self.mlp = None
-        self.layernorm2 = None
-        self.dropout = None
-        raise NotImplementedError
+        self.attention = MultiHeadedSelfAttention(num_heads, hidden_size)
+        self.layernorm1 = LayerNorm(hidden_size)
+        self.mlp = BertMLP(hidden_size, intermediate_size)
+        self.layernorm2 = LayerNorm(hidden_size)
+        self.dropout = nn.Dropout(p=dropout)
 
     def forward(self, input, attn_mask=None):
         """Apply each of the layers in the block."""
-        raise NotImplementedError
+        attn_output = self.attention(input, attn_mask)
+        attn_output = self.dropout(attn_output)
+        residual = self.layernorm1(input + attn_output)
+        mlp_output = self.mlp(residual)
+        mlp_output = self.dropout(mlp_output)
+        return self.layernorm2(residual + mlp_output)
 
 
 class Bert(nn.Module):
@@ -363,13 +367,12 @@ class Bert(nn.Module):
                  type_vocab_size: int, dropout: float, intermediate_size: int,
                  num_heads: int, num_layers: int):
         super().__init__()
-        self.embed = None
-        self.blocks = None
-        self.lin = None
-        self.gelu = None
-        self.layer_norm = None
-        self.unembed = None
-        raise NotImplementedError
+        self.embed = BertEmbedding(vocab_size, hidden_size, max_position_embeddings, type_vocab_size, dropout)
+        self.blocks = nn.Sequential(num_layers * [BertBlock(hidden_size, intermediate_size, num_heads, dropout)])
+        self.lin = nn.Linear(hidden_size, hidden_size, bias=True)
+        self.gelu = GELU()
+        self.layer_norm = LayerNorm(hidden_size)
+        self.unembed = nn.Linear(hidden_size, vocab_size, bias=True)
 
     def forward(self, input_ids):
         """Apply embedding, blocks, and token output head."""
