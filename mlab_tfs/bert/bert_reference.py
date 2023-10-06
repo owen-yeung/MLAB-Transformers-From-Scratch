@@ -99,9 +99,9 @@ def raw_attention_pattern(
 
 
 def multi_head_self_attention(
-    token_activations, num_heads, attention_pattern, project_value, project_out # , dropout
+    token_activations, num_heads, attention_pattern, project_value, project_out, dropout
 ):
-    """Dropout removed"""
+    """Dropout unremoved"""
     # if attention_masks is not None:
     #     attention_raw = attention_raw * attention_masks
     attention_patterns = softmax(attention_pattern, dim=-2)
@@ -145,7 +145,7 @@ class SelfAttentionLayer(Module):
         self.pattern = AttentionPattern(config)
         self.project_value = Linear(hidden_size, hidden_size, bias=True)
         self.project_out = Linear(hidden_size, hidden_size, bias=True)
-        # self.dropout = Dropout(config["dropout"])
+        self.dropout = Dropout(config["dropout"])
 
     def forward(self, token_activations, attention_masks=None):
         return multi_head_self_attention(
@@ -155,7 +155,7 @@ class SelfAttentionLayer(Module):
             self.pattern(token_activations, attention_masks),
             self.project_value,
             self.project_out,
-            # self.dropout,
+            self.dropout,
         )
 
 

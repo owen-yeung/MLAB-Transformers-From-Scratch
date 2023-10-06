@@ -259,15 +259,19 @@ class BertMLP(nn.Module):
 
     def __init__(self, hidden_size: int, intermediate_size: int):
         super().__init__()
-        self.lin1 = None
-        self.gelu = None
-        self.lin2 = None
-        raise NotImplementedError
+        self.lin1 = nn.Linear(hidden_size, intermediate_size, bias=True)
+        self.gelu = GELU()
+        self.lin2 = nn.Linear(intermediate_size, hidden_size, bias=True)
+
 
     def forward(self, input: TensorType['batch_size', 'seq_length', 'hidden_size']
                 ) -> TensorType['batch_size', 'seq_length', 'hidden_size']:
         """Apply linear projection, GELU, and another linear projection."""
-        raise NotImplementedError
+        return self.lin2(
+            self.gelu(
+                self.lin1(input)
+            )
+        )
 
 
 class BertBlock(nn.Module):
